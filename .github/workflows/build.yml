@@ -29,6 +29,13 @@ jobs:
           echo "Contenido del proyecto:"
           find proyecto -maxdepth 5 -type f | sort
 
+      - name: Revisar temas
+        run: |
+          echo "===== themes.xml ====="
+          cat proyecto/SPmusic_1_0/app/src/main/res/values/themes.xml
+          echo "===== AndroidManifest.xml ====="
+          cat proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml
+
       - name: Corregir MainActivity
         run: |
           python3 - <<'PY'
