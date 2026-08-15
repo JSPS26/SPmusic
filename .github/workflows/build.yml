@@ -21,25 +21,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v4
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Encontrar proyecto Android
+      - name: Buscar proyecto
         run: |
-          echo "Buscando gradlew..."
-          find proyecto -name gradlew -type f
+          echo "Contenido del proyecto:"
+          find proyecto -maxdepth 5 -type f | sort
 
-      - name: Dar permisos a Gradle
+      - name: Compilar SPmusic
         run: |
-          GRADLEW=$(find proyecto -name gradlew -type f | head -n 1)
-          chmod +x "$GRADLEW"
-
-      - name: Compilar APK
-        run: |
-          GRADLEW=$(find proyecto -name gradlew -type f | head -n 1)
-          PROJECT_DIR=$(dirname "$GRADLEW")
-          cd "$PROJECT_DIR"
-          ./gradlew assembleDebug
+          cd proyecto
+          gradle assembleDebug
 
       - name: Buscar APK
         run: |
@@ -49,4 +42,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SPmusic-APK
-          path: proyecto/**/app/build/outputs/apk/debug/*.apk
+          path: proyecto/**/build/outputs/apk/debug/*.apk
