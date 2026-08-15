@@ -1,0 +1,38 @@
+name: Compilar SPmusic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+
+      - name: Descomprimir SPmusic
+        run: |
+          unzip -o SPmusic_1_0_fuente_completa.zip -d proyecto
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Dar permisos a Gradle
+        run: chmod +x proyecto/SPmusic_1_0/gradlew
+
+      - name: Compilar APK
+        working-directory: proyecto/SPmusic_1_0
+        run: ./gradlew assembleDebug
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPmusic-APK
+          path: proyecto/SPmusic_1_0/app/build/outputs/apk/debug/app-debug.apk
