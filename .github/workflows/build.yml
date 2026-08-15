@@ -29,11 +29,30 @@ jobs:
           echo "Contenido del proyecto:"
           find proyecto -maxdepth 5 -type f | sort
 
-      - name: Mostrar MainActivity
+      - name: Corregir MainActivity
         run: |
-          echo "===== MAIN ACTIVITY ====="
-          cat proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java
-          echo "===== FIN MAIN ACTIVITY ====="
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          file = Path("proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java")
+          text = file.read_text()
+
+          if "import androidx.recyclerview.widget.RecyclerView;" not in text:
+              lines = text.splitlines()
+              last_import = max(i for i, line in enumerate(lines) if line.startswith("import "))
+              lines.insert(last_import + 1, "import androidx.recyclerview.widget.RecyclerView;")
+              text = "\n".join(lines) + "\n"
+
+          text = text.replace("void play(Song s)", "public void play(Song s)")
+
+          pattern = r"(controller\.addListener\(new Player\.Listener\{.*?\}\)),Runnable::run\);"
+          text = re.sub(pattern, r"\1);", text, flags=re.DOTALL)
+
+          file.write_text(text)
+
+          print("MainActivity.java corregido.")
+          PY
 
       - name: Compilar SPmusic
         run: |
