@@ -138,9 +138,3 @@ jobs:
         with:
           name: SPmusic-APK
           path: proyecto/**/build/outputs/apk/debug/*.apk
-
-Después:
-
-**Actions → Compilar SPmusic → Run workflow → Run workflow.**
-
-Cuando termine, **si vuelve a salir verde pero la APK se cierra**, mándame la captura o el texto de esa ejecución. Ahí ya pasamos de “arreglar la compilación” a encontrar **qué está haciendo que SPmusic se cierre al iniciar**.
