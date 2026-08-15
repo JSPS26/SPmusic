@@ -29,9 +29,9 @@ jobs:
           echo "Contenido del proyecto:"
           find proyecto -maxdepth 5 -type f | sort
 
-      - name: Compilar SPmusic
+            - name: Compilar SPmusic
         run: |
-          cd proyecto
+          cd proyecto/SPmusic_1_0
           gradle assembleDebug
 
       - name: Buscar APK
