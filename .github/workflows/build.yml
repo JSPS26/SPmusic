@@ -27,7 +27,7 @@ jobs:
       - name: Buscar proyecto
         run: |
           echo "===== CONTENIDO DEL PROYECTO ====="
-          find proyecto -maxdepth 5 -type f | sort
+          find proyecto -maxdepth 6 -type f | sort
 
       - name: Corregir MainActivity
         run: |
@@ -90,8 +90,6 @@ jobs:
           </resources>
           EOF
 
-          echo "Tema AppTheme creado."
-
       - name: Corregir AndroidManifest
         run: |
           python3 - <<'PY'
@@ -125,24 +123,192 @@ jobs:
           for file in root.rglob("*.xml"):
               text = file.read_text()
 
-              if "android:hintTextColor" in text:
-                  print(f"Corrigiendo: {file}")
+              text = text.replace(
+                  "android:hintTextColor",
+                  "android:textColorHint"
+              )
 
-                  text = text.replace(
-                      "android:hintTextColor",
-                      "android:textColorHint"
-                  )
-
-                  file.write_text(text)
+              file.write_text(text)
 
           print("Recursos XML corregidos.")
           PY
 
-      - name: Verificar recursos
+      - name: Crear pantalla de diagnóstico
         run: |
-          echo "===== BUSCANDO ATRIBUTOS PROBLEMÁTICOS ====="
-          grep -R "hintTextColor" proyecto/SPmusic_1_0/app/src/main/res || true
-          echo "===== FIN VERIFICACIÓN ====="
+          mkdir -p proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app
+
+          cat > proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/CrashActivity.java <<'EOF'
+          package com.spmusic.app;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.graphics.Color;
+          import android.view.Gravity;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
+          import android.text.method.ScrollingMovementMethod;
+
+          public class CrashActivity extends Activity {
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  String error = getIntent().getStringExtra("error");
+
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(32, 32, 32, 32);
+                  layout.setGravity(Gravity.CENTER);
+
+                  TextView title = new TextView(this);
+                  title.setText("SPmusic encontró un error");
+                  title.setTextSize(24);
+                  title.setTextColor(Color.BLACK);
+                  title.setGravity(Gravity.CENTER);
+                  title.setPadding(0, 0, 0, 24);
+
+                  TextView details = new TextView(this);
+                  details.setText(error == null ? "Error desconocido." : error);
+                  details.setTextSize(14);
+                  details.setTextColor(Color.DKGRAY);
+                  details.setMovementMethod(new ScrollingMovementMethod());
+
+                  layout.addView(title);
+                  layout.addView(details);
+
+                  setContentView(layout);
+              }
+          }
+          EOF
+
+          echo "CrashActivity creada."
+
+      - name: Agregar diagnóstico de errores
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          file = Path(
+              "proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java"
+          )
+
+          text = file.read_text()
+
+          marker = "public class MainActivity"
+
+          if "SPMUSIC_CRASH_HANDLER" not in text and marker in text:
+
+              start = text.index(marker)
+              brace = text.index("{", start) + 1
+
+              handler = r'''
+
+              // SPMUSIC_CRASH_HANDLER
+              private void instalarManejadorDeErrores() {
+                  Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+                      try {
+                          StringBuilder error = new StringBuilder();
+                          error.append("Hilo: ")
+                               .append(thread.getName())
+                               .append("\n\n");
+                          error.append(throwable.toString())
+                               .append("\n\n");
+
+                          for (StackTraceElement element : throwable.getStackTrace()) {
+                              error.append("at ")
+                                   .append(element.toString())
+                                   .append("\n");
+                          }
+
+                          android.content.Intent intent =
+                              new android.content.Intent(this, CrashActivity.class);
+
+                          intent.putExtra("error", error.toString());
+                          intent.addFlags(
+                              android.content.Intent.FLAG_ACTIVITY_NEW_TASK |
+                              android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                          );
+
+                          startActivity(intent);
+
+                          try {
+                              Thread.sleep(1500);
+                          } catch (InterruptedException ignored) {
+                          }
+
+                      } catch (Exception ignored) {
+                      }
+
+                      android.os.Process.killProcess(
+                          android.os.Process.myPid()
+                      );
+                  });
+              }
+              '''
+
+              text = text[:brace] + handler + text[brace:]
+
+              on_create = "protected void onCreate(Bundle savedInstanceState)"
+              pos = text.find(on_create)
+
+              if pos != -1:
+                  body = text.find("{", pos)
+
+                  if body != -1:
+                      text = (
+                          text[:body + 1]
+                          + "\n        instalarManejadorDeErrores();\n"
+                          + text[body + 1:]
+                      )
+
+              file.write_text(text)
+
+          print("Manejador de errores instalado.")
+          PY
+
+      - name: Agregar CrashActivity al Manifest
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          file = Path(
+              "proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml"
+          )
+
+          text = file.read_text()
+
+          activity = '<activity android:name=".CrashActivity" />'
+
+          if "CrashActivity" not in text:
+              position = text.rfind("</application>")
+
+              if position != -1:
+                  text = (
+                      text[:position]
+                      + "        "
+                      + activity
+                      + "\n"
+                      + text[position:]
+                  )
+
+          file.write_text(text)
+
+          print("CrashActivity agregada al Manifest.")
+          PY
+
+      - name: Verificar proyecto
+        run: |
+          echo "===== MAIN ACTIVITY ====="
+          grep -n "SPMUSIC_CRASH_HANDLER" \
+            proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java || true
+
+          echo "===== CRASH ACTIVITY ====="
+          ls -l \
+            proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/CrashActivity.java
+
+          echo "===== MANIFEST ====="
+          cat proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml
 
       - name: Compilar SPmusic
         run: |
@@ -157,5 +323,5 @@ jobs:
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: SPmusic-APK
+          name: SPmusic-APK-Diagnostico
           path: proyecto/**/build/outputs/apk/debug/*.apk
