@@ -45,7 +45,7 @@ jobs:
 
           text = text.replace("void play(Song s)", "public void play(Song s)")
 
-          text = text.replace("}},Runnable::run);updateMini();", "});updateMini();")
+          text = text.replace("}},Runnable::run);updateMini();", "}});updateMini();")
 
           file.write_text(text)
 
