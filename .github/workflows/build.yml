@@ -16,23 +16,37 @@ jobs:
           unzip -o SPmusic_1_0_fuente_completa.zip -d proyecto
 
       - name: Configurar Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+
+      - name: Encontrar proyecto Android
+        run: |
+          echo "Buscando gradlew..."
+          find proyecto -name gradlew -type f
 
       - name: Dar permisos a Gradle
-        run: chmod +x proyecto/SPmusic_1_0/gradlew
+        run: |
+          GRADLEW=$(find proyecto -name gradlew -type f | head -n 1)
+          chmod +x "$GRADLEW"
 
       - name: Compilar APK
-        working-directory: proyecto/SPmusic_1_0
-        run: ./gradlew assembleDebug
+        run: |
+          GRADLEW=$(find proyecto -name gradlew -type f | head -n 1)
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug
+
+      - name: Buscar APK
+        run: |
+          find proyecto -name "*.apk" -type f
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: SPmusic-APK
-          path: proyecto/SPmusic_1_0/app/build/outputs/apk/debug/app-debug.apk
+          path: proyecto/**/app/build/outputs/apk/debug/*.apk
