@@ -26,7 +26,7 @@ jobs:
 
       - name: Buscar proyecto
         run: |
-          echo "Contenido del proyecto:"
+          echo "===== CONTENIDO DEL PROYECTO ====="
           find proyecto -maxdepth 5 -type f | sort
 
       - name: Corregir MainActivity
@@ -34,18 +34,36 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          file = Path("proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java")
+          file = Path(
+              "proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java"
+          )
+
           text = file.read_text()
 
           if "import androidx.recyclerview.widget.RecyclerView;" not in text:
               lines = text.splitlines()
-              last_import = max(i for i, line in enumerate(lines) if line.startswith("import "))
-              lines.insert(last_import + 1, "import androidx.recyclerview.widget.RecyclerView;")
+              imports = [
+                  i for i, line in enumerate(lines)
+                  if line.startswith("import ")
+              ]
+
+              if imports:
+                  lines.insert(
+                      max(imports) + 1,
+                      "import androidx.recyclerview.widget.RecyclerView;"
+                  )
+
               text = "\n".join(lines) + "\n"
 
-          text = text.replace("void play(Song s)", "public void play(Song s)")
+          text = text.replace(
+              "void play(Song s)",
+              "public void play(Song s)"
+          )
 
-          text = text.replace("}},Runnable::run);updateMini();", "}});updateMini();")
+          text = text.replace(
+              "}},Runnable::run);updateMini();",
+              "}});updateMini();"
+          )
 
           file.write_text(text)
 
@@ -54,15 +72,50 @@ jobs:
 
       - name: Corregir tema Android
         run: |
-          MANIFEST="proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml"
+          python3 - <<'PY'
+          from pathlib import Path
 
-          echo "Tema antes de corregir:"
-          grep -n "Theme.Material.NoActionBar" "$MANIFEST" || true
+          root = Path("proyecto/SPmusic_1_0/app/src/main")
 
-          sed -i 's/Theme\.Material\.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' "$MANIFEST"
+          print("===== BUSCANDO TEMA PROBLEMÁTICO =====")
 
-          echo "Tema después de corregir:"
-          grep -n "Theme.Material" "$MANIFEST" || true
+          for file in root.rglob("*.xml"):
+              text = file.read_text()
+
+              if "Theme.Material.NoActionBar" in text:
+                  print(f"Corrigiendo: {file}")
+
+                  text = text.replace(
+                      "@style/Theme.Material.NoActionBar",
+                      "@android:style/Theme.Material.Light.NoActionBar"
+                  )
+
+                  text = text.replace(
+                      "style/Theme.Material.NoActionBar",
+                      "android:style/Theme.Material.Light.NoActionBar"
+                  )
+
+                  text = text.replace(
+                      "Theme.Material.NoActionBar",
+                      "Theme.Material.Light.NoActionBar"
+                  )
+
+                  file.write_text(text)
+
+          print("===== TEMAS CORREGIDOS =====")
+          PY
+
+      - name: Verificar AndroidManifest
+        run: |
+          echo "===== ANDROID MANIFEST ====="
+          cat proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml
+          echo "===== FIN MANIFEST ====="
+
+      - name: Verificar temas XML
+        run: |
+          echo "===== TEMAS ====="
+          find proyecto/SPmusic_1_0/app/src/main/res -type f -name "*.xml" -print -exec grep -n "Theme" {} \; || true
+          echo "===== FIN TEMAS ====="
 
       - name: Compilar SPmusic
         run: |
@@ -71,6 +124,7 @@ jobs:
 
       - name: Buscar APK
         run: |
+          echo "===== APK GENERADO ====="
           find proyecto -name "*.apk" -type f
 
       - name: Guardar APK
