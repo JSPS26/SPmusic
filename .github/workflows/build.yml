@@ -33,7 +33,6 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           file = Path("proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java")
           text = file.read_text()
@@ -46,8 +45,7 @@ jobs:
 
           text = text.replace("void play(Song s)", "public void play(Song s)")
 
-          pattern = r"(controller\.addListener\(new Player\.Listener\{.*?\}\)),Runnable::run\);"
-          text = re.sub(pattern, r"\1);", text, flags=re.DOTALL)
+          text = text.replace("}},Runnable::run);updateMini();", "});updateMini();")
 
           file.write_text(text)
 
