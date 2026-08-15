@@ -70,52 +70,60 @@ jobs:
           print("MainActivity.java corregido.")
           PY
 
-      - name: Corregir tema Android
+      - name: Crear tema compatible
         run: |
+          mkdir -p proyecto/SPmusic_1_0/app/src/main/res/values
+
+          cat > proyecto/SPmusic_1_0/app/src/main/res/values/themes.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+
+              <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowActionModeOverlay">true</item>
+                  <item name="android:colorAccent">#3F51B5</item>
+                  <item name="android:navigationBarColor">#000000</item>
+                  <item name="android:statusBarColor">#000000</item>
+                  <item name="android:windowLightStatusBar">false</item>
+              </style>
+
+          </resources>
+          EOF
+
+          echo "Tema AppTheme creado."
+
+      - name: Corregir AndroidManifest
+        run: |
+          MANIFEST="proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml"
+
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          root = Path("proyecto/SPmusic_1_0/app/src/main")
+          file = Path(
+              "proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml"
+          )
 
-          print("===== BUSCANDO TEMA PROBLEMÁTICO =====")
+          text = file.read_text()
 
-          for file in root.rglob("*.xml"):
-              text = file.read_text()
+          text = re.sub(
+              r'android:theme="[^"]*"',
+              'android:theme="@style/AppTheme"',
+              text
+          )
 
-              if "Theme.Material.NoActionBar" in text:
-                  print(f"Corrigiendo: {file}")
+          file.write_text(text)
 
-                  text = text.replace(
-                      "@style/Theme.Material.NoActionBar",
-                      "@android:style/Theme.Material.Light.NoActionBar"
-                  )
-
-                  text = text.replace(
-                      "style/Theme.Material.NoActionBar",
-                      "android:style/Theme.Material.Light.NoActionBar"
-                  )
-
-                  text = text.replace(
-                      "Theme.Material.NoActionBar",
-                      "Theme.Material.Light.NoActionBar"
-                  )
-
-                  file.write_text(text)
-
-          print("===== TEMAS CORREGIDOS =====")
+          print("AndroidManifest.xml corregido.")
           PY
 
-      - name: Verificar AndroidManifest
-        run: |
-          echo "===== ANDROID MANIFEST ====="
-          cat proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml
-          echo "===== FIN MANIFEST ====="
+          echo "===== MANIFEST FINAL ====="
+          cat "$MANIFEST"
 
-      - name: Verificar temas XML
+      - name: Verificar tema
         run: |
-          echo "===== TEMAS ====="
-          find proyecto/SPmusic_1_0/app/src/main/res -type f -name "*.xml" -print -exec grep -n "Theme" {} \; || true
-          echo "===== FIN TEMAS ====="
+          echo "===== themes.xml ====="
+          cat proyecto/SPmusic_1_0/app/src/main/res/values/themes.xml
 
       - name: Compilar SPmusic
         run: |
