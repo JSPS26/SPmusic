@@ -29,6 +29,12 @@ jobs:
           echo "Contenido del proyecto:"
           find proyecto -maxdepth 5 -type f | sort
 
+      - name: Mostrar MainActivity
+        run: |
+          echo "===== MAIN ACTIVITY ====="
+          cat proyecto/SPmusic_1_0/app/src/main/java/com/spmusic/app/MainActivity.java
+          echo "===== FIN MAIN ACTIVITY ====="
+
       - name: Compilar SPmusic
         run: |
           cd proyecto/SPmusic_1_0
