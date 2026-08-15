@@ -94,8 +94,6 @@ jobs:
 
       - name: Corregir AndroidManifest
         run: |
-          MANIFEST="proyecto/SPmusic_1_0/app/src/main/AndroidManifest.xml"
-
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -117,13 +115,34 @@ jobs:
           print("AndroidManifest.xml corregido.")
           PY
 
-          echo "===== MANIFEST FINAL ====="
-          cat "$MANIFEST"
-
-      - name: Verificar tema
+      - name: Corregir recursos XML
         run: |
-          echo "===== themes.xml ====="
-          cat proyecto/SPmusic_1_0/app/src/main/res/values/themes.xml
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("proyecto/SPmusic_1_0/app/src/main/res")
+
+          for file in root.rglob("*.xml"):
+              text = file.read_text()
+
+              if "android:hintTextColor" in text:
+                  print(f"Corrigiendo: {file}")
+
+                  text = text.replace(
+                      "android:hintTextColor",
+                      "android:textColorHint"
+                  )
+
+                  file.write_text(text)
+
+          print("Recursos XML corregidos.")
+          PY
+
+      - name: Verificar recursos
+        run: |
+          echo "===== BUSCANDO ATRIBUTOS PROBLEMÁTICOS ====="
+          grep -R "hintTextColor" proyecto/SPmusic_1_0/app/src/main/res || true
+          echo "===== FIN VERIFICACIÓN ====="
 
       - name: Compilar SPmusic
         run: |
